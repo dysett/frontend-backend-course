@@ -1,0 +1,82 @@
+section#contacts-view(data-view='contacts')
+  .page-heading
+    div
+      .eyebrow ВАША АДРЕСНА КНИГА
+      h1
+        | Список розсилки
+        span.title-dot .
+      p Усі ваші адресати в одному місці.
+    a.btn.btn-primary(href='#compose')
+      i.bi.bi-send.me-2(aria-hidden='true')
+      | Нова розсилка
+  .stats-row
+    div
+      span.stat-icon
+        i.bi.bi-people(aria-hidden='true')
+      div
+        strong#stat-contacts= contacts.length
+        span контактів у списку
+    div
+      span.stat-icon.sand
+        i.bi.bi-files(aria-hidden='true')
+      div
+        strong#stat-templates= templates.length
+        span готових шаблонів
+    div
+      span.stat-icon.violet
+        i.bi.bi-send-check(aria-hidden='true')
+      div
+        strong#stat-campaigns= campaigns.length
+        span розсилок в історії
+  .content-panel
+    .panel-title
+      div
+        h2
+          | Контакти 
+          span#contact-count.count-badge= contacts.length
+        p Додавайте адреси та вибирайте, кому написати.
+      button.btn.btn-primary#add-contact(type='button')
+        i.bi.bi-plus-lg.me-2(aria-hidden='true')
+        | Додати контакт
+    .table-toolbar
+      .search-wrap
+        i.bi.bi-search(aria-hidden='true')
+        input#search.form-control(type='search', placeholder='Пошук за ім’ям або адресою…', aria-label='Пошук контактів')
+      label.sort-wrap
+        i.bi.bi-sort-alpha-down(aria-hidden='true')
+        select.form-select#sort(aria-label='Сортування контактів')
+          option(value='name-asc') Прізвище: А–Я
+          option(value='name-desc') Прізвище: Я–А
+          option(value='email-asc') Email: А–Я
+          option(value='email-desc') Email: Я–А
+    .selection-bar.d-none#selection-bar
+      span
+        | Вибрано: 
+        strong#selected-count 0
+      div
+        button.btn.btn-sm.btn-link#clear-selection(type='button') Скасувати вибір
+        button.btn.btn-sm.btn-primary#write-selected(type='button')
+          | Написати вибраним 
+          i.bi.bi-arrow-right.ms-1(aria-hidden='true')
+    .table-responsive
+      table.table.contact-table.align-middle.mb-0
+        thead
+          tr
+            th.check-cell(scope='col')
+              input.form-check-input#select-page(type='checkbox', aria-label='Вибрати всі контакти на сторінці')
+            th(scope='col') ОДЕРЖУВАЧ
+            th(scope='col') ЕЛЕКТРОННА АДРЕСА
+            th.text-end(scope='col') ДІЇ
+        tbody#contact-rows
+          include ../partials/contact-rows.pug
+    .table-footer
+      span#page-info= contacts.length ? '1–' + Math.min(8, contacts.length) + ' із ' + contacts.length + ' контактів' : '0 контактів'
+      .pagination-controls
+        button.btn.btn-light.btn-sm#previous-page(type='button', aria-label='Попередня сторінка')
+          i.bi.bi-chevron-left(aria-hidden='true')
+        span#page-number= '1 / ' + Math.max(1, Math.ceil(contacts.length / 8))
+        button.btn.btn-light.btn-sm#next-page(type='button', aria-label='Наступна сторінка', disabled=contacts.length <= 8)
+          i.bi.bi-chevron-right(aria-hidden='true')
+  p.page-footnote
+    i.bi.bi-info-circle.me-2(aria-hidden='true')
+    | Виберіть контакти у списку або надішліть лист усім одержувачам.

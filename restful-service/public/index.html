@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174e47">
+  <title>Бібліотека — каталог і видачі</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5.5C9 3.5 5 3.5 2.5 4.5v15C5 18.5 9 18.5 12 20.5c3-2 7-2 9.5-1v-15c-2.5-1-6.5-1-9.5 1Zm0 0v15"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-return" viewBox="0 0 24 24"><path d="m8 4-5 5 5 5M3 9h11a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 9a8 8 0 0 0-14-3L3 9m0-6v6h6M4 15a8 8 0 0 0 14 3l3-3m0 6v-6h-6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2.5M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Бібліотека — головна">
+      <span class="brand-mark"><svg><use href="#i-book"/></svg></span>
+      <span>Бібліотека<small>Каталог і видачі</small></span>
+    </a>
+    <nav class="main-nav" aria-label="Розділи">
+      <button class="nav-button active" type="button" data-view="catalog" aria-pressed="true">Каталог книжок</button>
+      <button class="nav-button" type="button" data-view="loans" aria-pressed="false">Активні видачі <span id="nav-loan-count">0</span></button>
+    </nav>
+    <button class="help-button" id="help-button" type="button"><svg><use href="#i-help"/></svg><span>Як користуватися</span></button>
+  </header>
+
+  <main class="workspace">
+    <div class="workspace-topline"><span>КЕРУВАННЯ БІБЛІОТЕКОЮ</span><span class="connection" id="connection"><i></i>Підключаємося…</span></div>
+    <section class="page-heading">
+      <div><h1 id="page-title">Книжки під рукою</h1><p id="page-description">Додавайте книжки до каталогу, видавайте примірники та стежте за поверненнями.</p></div>
+      <button class="button primary" id="add-book" type="button"><svg><use href="#i-plus"/></svg>Додати книжку</button>
+    </section>
+
+    <section class="statistics" aria-label="Статистика всієї бібліотеки">
+      <div class="stat"><span>Назв у каталозі</span><strong id="stat-titles">—</strong><small>різних книжок</small></div>
+      <div class="stat"><span><i class="dot green"></i>Доступні примірники</span><strong id="stat-available">—</strong><small>можна видати зараз</small></div>
+      <div class="stat"><span><i class="dot amber"></i>На руках у читачів</span><strong id="stat-borrowed">—</strong><small>очікують повернення</small></div>
+      <div class="stat"><span><i class="dot red"></i>Прострочені видачі</span><strong id="stat-overdue">—</strong><small>строк уже минув</small></div>
+    </section>
+
+    <div class="global-error" id="global-error" role="alert" hidden></div>
+
+    <section class="panel" id="catalog-view" aria-labelledby="catalog-title">
+      <div class="panel-heading"><div><h2 id="catalog-title">Каталог книжок <span class="count" id="book-count">0</span></h2><p>Усі книжки та їхня поточна доступність.</p></div><button class="button subtle refresh-button" type="button"><svg><use href="#i-refresh"/></svg>Оновити</button></div>
+      <div class="toolbar">
+        <label class="search"><svg><use href="#i-search"/></svg><input id="book-search" type="search" maxlength="100" placeholder="Знайти за назвою, автором або ISBN" aria-label="Пошук книжок"></label>
+        <label class="filter-label">Доступність<select id="availability"><option value="">Усі книжки</option><option value="true">Є вільні примірники</option><option value="false">Усі примірники видано</option></select></label>
+      </div>
+      <div class="table-scroll"><table class="books-table"><thead><tr><th scope="col">Книжка</th><th scope="col">Жанр / рік</th><th scope="col">Примірники</th><th scope="col">Дії з книжкою</th></tr></thead><tbody id="book-rows"><tr><td colspan="4" class="empty">Завантажуємо каталог…</td></tr></tbody></table></div>
+      <div class="panel-foot"><span id="catalog-summary">Завантаження…</span><span>«Видати» — один примірник одному читачу</span></div>
+    </section>
+
+    <section class="panel" id="loans-view" aria-labelledby="loans-title" hidden>
+      <div class="panel-heading"><div><h2 id="loans-title">Активні видачі <span class="count" id="loan-count">0</span></h2><p>Хто взяв книжку та коли її потрібно повернути.</p></div><button class="button subtle refresh-button" type="button"><svg><use href="#i-refresh"/></svg>Оновити</button></div>
+      <div class="toolbar"><label class="search"><svg><use href="#i-search"/></svg><input id="loan-search" type="search" placeholder="Знайти книжку або код читача" aria-label="Пошук видач"></label><label class="filter-label">Статус<select id="loan-status"><option value="">Усі активні видачі</option><option value="true">Лише прострочені</option></select></label></div>
+      <div class="table-scroll"><table><thead><tr><th scope="col">Книжка / читач</th><th scope="col">Дата видачі</th><th scope="col">Повернути до</th><th scope="col">Дія</th></tr></thead><tbody id="loan-rows"></tbody></table></div>
+      <div class="panel-foot"><span>Після повернення видача зникає з цього списку.</span><span>Час показано за вашим часовим поясом</span></div>
+    </section>
+
+    <details class="api-inspector" id="api-inspector"><summary><span class="inspector-label">Що відбувається на сервері</span><span class="request-line" id="request-line">Очікуємо запит…</span><span class="inspector-hint">Показати JSON</span></summary><div class="inspector-content"><p>Кнопки на сторінці надсилають запити до REST API. Тут можна переглянути останній запит і відповідь сервера.</p><h3>Запит</h3><pre id="request-body">—</pre><h3>Відповідь <span id="response-status"></span></h3><pre id="response-body">—</pre></div></details>
+    <footer class="page-footer"><span>Навчальний RESTful-сервіс · Node.js, Express, MongoDB</span><a href="/api/books" target="_blank" rel="noopener">Відкрити JSON API ↗</a></footer>
+  </main>
+
+  <dialog id="book-dialog" aria-labelledby="book-dialog-title">
+    <form id="book-form" novalidate>
+      <div class="dialog-heading"><div><span class="eyebrow">КАТАЛОГ</span><h2 id="book-dialog-title">Додати книжку</h2></div><button class="icon-button" type="button" data-close aria-label="Закрити"><svg><use href="#i-close"/></svg></button></div>
+      <p class="dialog-description">Заповніть дані видання та кількість примірників у бібліотеці.</p>
+      <div class="form-error" role="alert" hidden></div>
+      <input type="hidden" name="bookId">
+      <label class="field">Назва книжки<input name="title" required maxlength="200" placeholder="Наприклад, Clean Architecture" autocomplete="off"></label>
+      <label class="field">Автор<input name="author" required maxlength="200" placeholder="Ім’я та прізвище автора" autocomplete="off"></label>
+      <label class="field">ISBN-13<input name="isbn" required maxlength="32" placeholder="9780134494166" autocomplete="off" inputmode="numeric"><small>13 цифр. Пробіли та дефіси допускаються.</small></label>
+      <div class="form-grid"><label class="field">Рік видання<input name="publicationYear" type="number" min="1" step="1" required placeholder="2024"></label><label class="field">Примірників усього<input name="totalCopies" type="number" min="1" max="100" step="1" required value="1"></label></div>
+      <label class="field">Жанр<input name="genre" required maxlength="80" placeholder="Наприклад, Програмування" autocomplete="off"></label>
+      <div class="dialog-actions"><button class="button subtle" type="button" data-close>Скасувати</button><button class="button primary" type="submit" id="book-submit">Додати книжку</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="borrow-dialog" aria-labelledby="borrow-dialog-title">
+    <form id="borrow-form" novalidate>
+      <div class="dialog-heading"><div><span class="eyebrow">ВИДАЧА ПРИМІРНИКА</span><h2 id="borrow-dialog-title">Видати книжку</h2></div><button class="icon-button" type="button" data-close aria-label="Закрити"><svg><use href="#i-close"/></svg></button></div>
+      <div class="selected-book"><svg><use href="#i-book"/></svg><div><strong id="borrow-book-title"></strong><span id="borrow-availability"></span></div></div>
+      <p class="dialog-description">Один примірник буде закріплено за читачем до вказаного строку.</p>
+      <div class="form-error" role="alert" hidden></div>
+      <input type="hidden" name="bookId">
+      <label class="field">Код читача<input name="readerId" required maxlength="64" placeholder="Наприклад, reader-001" autocomplete="off"><small>Літери, цифри, дефіс або підкреслення. Один читач може взяти один примірник цієї книжки.</small></label>
+      <label class="field">Строк видачі, діб<input name="days" type="number" min="1" max="30" step="1" value="14" required><small id="due-preview"></small></label>
+      <div class="dialog-actions"><button class="button subtle" type="button" data-close>Скасувати</button><button class="button primary" type="submit"><svg><use href="#i-arrow"/></svg>Підтвердити видачу</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="book-loans-dialog" class="wide-dialog" aria-labelledby="book-loans-title">
+    <div class="dialog-heading"><div><span class="eyebrow">ВИДАЧІ КНИЖКИ</span><h2 id="book-loans-title"></h2></div><button class="icon-button" type="button" data-close aria-label="Закрити"><svg><use href="#i-close"/></svg></button></div>
+    <p class="dialog-description">Натисніть «Повернути», коли читач віддасть примірник бібліотеці.</p>
+    <div class="form-error" role="alert" hidden></div><div id="book-loans-list"></div>
+    <div class="dialog-actions"><button class="button subtle" type="button" data-close>Закрити</button></div>
+  </dialog>
+
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <form id="confirm-form" novalidate><div class="dialog-heading"><h2 id="confirm-title"></h2><button class="icon-button" type="button" data-close aria-label="Закрити"><svg><use href="#i-close"/></svg></button></div><p class="dialog-description" id="confirm-description"></p><div class="form-error" role="alert" hidden></div><div class="dialog-actions"><button class="button subtle" type="button" data-close>Скасувати</button><button class="button primary" id="confirm-submit" type="submit">Підтвердити</button></div></form>
+  </dialog>
+
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><span class="eyebrow">ШВИДКИЙ СТАРТ</span><h2 id="help-title">Як працювати з бібліотекою</h2></div><button class="icon-button" type="button" data-close aria-label="Закрити"><svg><use href="#i-close"/></svg></button></div><ol class="help-steps"><li><strong>Додайте книжку</strong><p>Натисніть «Додати книжку», заповніть форму й збережіть її. Книжка з’явиться в каталозі.</p></li><li><strong>Видайте примірник</strong><p>Біля книжки натисніть «Видати». Вкажіть код читача та строк. Кількість доступних примірників зменшиться на один.</p></li><li><strong>Прийміть повернення</strong><p>Відкрийте «Видачі» біля книжки або вкладку «Активні видачі». Натисніть «Повернути» та підтвердьте.</p></li><li><strong>Керуйте каталогом</strong><p>«Редагувати» змінює опис і фонд. «Видалити» вилучає книжку після повернення всіх примірників.</p></li></ol><p class="help-note">Усі зміни зберігаються в MongoDB. Пошук і фільтри допоможуть знайти потрібну книжку. Внизу сторінки можна розгорнути останній API-запит.</p><div class="dialog-actions"><button class="button primary" type="button" data-close>Зрозуміло</button></div></dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden><svg><use href="#i-check"/></svg><span></span><button type="button" class="icon-button" aria-label="Закрити повідомлення"><svg><use href="#i-close"/></svg></button></div>
+
+  <template id="book-row-template"><tr><td><div class="book-identity"><span class="book-spine" aria-hidden="true"></span><div><strong class="book-title"></strong><span class="book-author"></span><small class="book-isbn"></small></div></div></td><td><span class="genre-tag"></span><span class="book-year"></span></td><td><strong class="copies-number"></strong><span class="copies-label"></span><span class="stock-track"><i></i></span></td><td><div class="row-actions"><button type="button" class="button compact borrow-button"><svg><use href="#i-arrow"/></svg>Видати</button><button type="button" class="button compact loan-button">Видачі <span></span></button><button type="button" class="text-button edit-button">Редагувати</button><button type="button" class="text-button delete-button">Видалити</button></div></td></tr></template>
+</body>
+</html>

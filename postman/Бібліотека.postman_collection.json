@@ -1,0 +1,685 @@
+{
+  "info": {
+    "_postman_id": "8e28da83-227a-4964-bb69-5d9bfb3abb1d",
+    "name": "Бібліотека — API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "restUrl",
+      "value": "http://127.0.0.1:3002"
+    },
+    {
+      "key": "clientUrl",
+      "value": "http://127.0.0.1:3003"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin"
+    },
+    {
+      "key": "adminPassword",
+      "value": "DemoLibrary!2026"
+    },
+    {
+      "key": "restIsbn",
+      "value": ""
+    },
+    {
+      "key": "restBookId",
+      "value": ""
+    },
+    {
+      "key": "restLoanId",
+      "value": ""
+    },
+    {
+      "key": "clientCsrf",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. RESTful-сервіс",
+      "item": [
+        {
+          "name": "R01 Перевірити стан MongoDB",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = '978' + String(Date.now()).slice(-6) + String(Math.floor(Math.random()*1000)).padStart(3,'0');",
+                  "const sum = [...base].reduce((s,d,i) => s + Number(d) * (i%2 ? 3 : 1), 0);",
+                  "pm.collectionVariables.set('restIsbn', base + ((10 - sum%10)%10));",
+                  "['restBookId','restLoanId'].forEach(key => pm.collectionVariables.unset(key));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R02 Створити книжку",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Тестова книжка\",\n  \"author\": \"Тестовий автор\",\n  \"isbn\": \"{{restIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Програмування\",\n  \"totalCopies\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('restBookId', pm.response.json().data.id);",
+                  "pm.test('Location містить ідентифікатор', () => pm.expect(pm.response.headers.get('Location')).to.include(pm.response.json().data.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R03 Отримати книжку за ідентифікатором",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Назва книжки', () => pm.expect(pm.response.json().data.title).to.eql('Тестова книжка'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R04 Повне оновлення книжки — PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Тестова книжка: оновлені дані\",\n  \"author\": \"Тестовий автор\",\n  \"isbn\": \"{{restIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Програмування\",\n  \"totalCopies\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R05 Залишити один примірник — PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totalCopies\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Один доступний примірник', () => pm.expect(pm.response.json().data.availableCopies).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R06 Видати примірник першому читачеві",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}/loans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"readerId\": \"reader_001\",\n  \"days\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('restLoanId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R07 Відхилити видачу за відсутності примірників",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}/loans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"readerId\": \"reader_002\",\n  \"days\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('NO_COPIES_AVAILABLE', () => pm.expect(pm.response.json().error.code).to.eql('NO_COPIES_AVAILABLE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R08 Заборонити видалення з активною видачею",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('ACTIVE_LOANS', () => pm.expect(pm.response.json().error.code).to.eql('ACTIVE_LOANS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R09 Повернути примірник",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}/loans/{{restLoanId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R10 Видалити тестову книжку",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R11 Перевірити відсутність видаленої книжки — 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books/{{restBookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R12 Відхилити нульову кількість примірників — 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{restUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Тестова книжка\",\n  \"author\": \"Тестовий автор\",\n  \"isbn\": \"{{restIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Програмування\",\n  \"totalCopies\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Товстий клієнт",
+      "item": [
+        {
+          "name": "T01 Завершити попередній сеанс Postman",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{clientCsrf}}"
+              }
+            ],
+            "url": "{{clientUrl}}/api/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.sendRequest({url: pm.variables.get('clientUrl') + '/api/auth/session', method:'GET'}, (error, response) => {",
+                  "  if (error) throw error;",
+                  "  pm.collectionVariables.set('clientCsrf', response.json().data.csrfToken);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Сеанс завершено або відсутній', () => pm.expect([200,401]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T02 Відхилити запит без авторизації — 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{clientCsrf}}"
+              }
+            ],
+            "url": "{{clientUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('AUTH_REQUIRED', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_REQUIRED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T03 Отримати CSRF-токен і cookie",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{clientUrl}}/api/auth/session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('clientCsrf', pm.response.json().data.csrfToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T04 Увійти як адміністратор",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{clientCsrf}}"
+              }
+            ],
+            "url": "{{clientUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('clientCsrf', pm.response.json().data.csrfToken);",
+                  "pm.test('Роль адміністратора', () => pm.expect(pm.response.json().data.user.role).to.eql('admin'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T05 Відхилити неправильний CSRF-токен — 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "invalid"
+              }
+            ],
+            "url": "{{clientUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('CSRF_INVALID', () => pm.expect(pm.response.json().error.code).to.eql('CSRF_INVALID'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T06 Вийти із сеансу Postman",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{clientCsrf}}"
+              }
+            ],
+            "url": "{{clientUrl}}/api/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

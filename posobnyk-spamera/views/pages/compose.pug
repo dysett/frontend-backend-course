@@ -1,0 +1,65 @@
+section#compose-view(data-view='compose', hidden)
+  .page-heading
+    div
+      .eyebrow НОВЕ ПОВІДОМЛЕННЯ
+      h1
+        | Почнімо з листа
+        span.title-dot .
+      p Виберіть шаблон або напишіть щось своє.
+  #mail-mode-note.mode-note
+  .row.g-4
+    .col-xl-7
+      form#compose-form.content-panel.form-panel
+        fieldset#compose-fields
+          legend.visually-hidden Підготовка листа
+          h2
+            span.step-number 1
+            | Кому надсилаємо?
+          .audience-options
+            label
+              input.form-check-input(type='radio', name='audience', value='all', checked)
+              |  Усьому списку 
+              span#all-recipient-count.count-badge 0
+            label
+              input.form-check-input(type='radio', name='audience', value='selected')
+              |  Вибраним контактам 
+              span#chosen-recipient-count.count-badge 0
+          #recipient-picker.recipient-picker.d-none
+          .form-divider
+          h2
+            span.step-number 2
+            | Що напишемо?
+          label.form-label.mt-3(for='message-template') Шаблон повідомлення
+          select#message-template.form-select.mb-4
+            option(value) Власне повідомлення
+          label.form-label(for='subject')
+            | Тема листа 
+            span.required *
+          input#subject.form-control.mb-4(required, maxlength='160', placeholder='Наприклад, запрошення на зустріч')
+          .d-flex.justify-content-between
+            label.form-label(for='message-text')
+              | Текст повідомлення 
+              span.required *
+            small.text-secondary#character-count 0 / 10 000
+          textarea.form-control#message-text(rows='9', maxlength='10000', required, placeholder='Добрий день!  Напишіть ваше повідомлення…')
+        .form-actions
+          span#send-summary Одержувачів: 0
+          button.btn.btn-primary#send-button(type='submit')
+            i.bi.bi-send.me-2(aria-hidden='true')
+            | Підготувати листи
+        p#send-progress.text-secondary.small.mt-3.mb-0.d-none(role='status') Обробляємо розсилку. Зачекайте на результат…
+    .col-xl-5
+      .preview-panel
+        .preview-label
+          i.bi.bi-eye.me-2(aria-hidden='true')
+          | ПОПЕРЕДНІЙ ПЕРЕГЛЯД
+        .letter-preview
+          span.letter-icon
+            i.bi.bi-envelope-open(aria-hidden='true')
+          h3#preview-subject Тут буде тема листа
+          .letter-meta
+            span Від:
+            span#preview-from
+          hr
+          #preview-text.letter-text Ваше повідомлення з’явиться тут, щойно ви почнете писати.
+        p.preview-caption Кожен одержувач отримає окремий лист.

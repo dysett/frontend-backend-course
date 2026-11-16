@@ -1,0 +1,32 @@
+.modal.fade#contact-modal(tabindex='-1', aria-labelledby='contact-modal-title', aria-hidden='true')
+  .modal-dialog.modal-dialog-centered
+    .modal-content
+      form#contact-form
+        .modal-header
+          div
+            .eyebrow АДРЕСНА КНИГА
+            h2.modal-title.fs-4#contact-modal-title Новий контакт
+          button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Закрити')
+        .modal-body
+          input#contact-id(type='hidden')
+          p.text-secondary.small Усі поля обов’язкові для заповнення.
+          #contact-error.alert.alert-danger.d-none(role='alert')
+          .mb-3
+            label.form-label(for='last-name') Прізвище
+            input.form-control#last-name(name='lastName', maxlength='80', required, autocomplete='family-name')
+            .invalid-feedback(data-error-for='lastName')
+          .row.g-3.mb-3
+            .col-sm-6
+              label.form-label(for='first-name') Ім’я
+              input.form-control#first-name(name='firstName', maxlength='80', required, autocomplete='given-name')
+              .invalid-feedback(data-error-for='firstName')
+            .col-sm-6
+              label.form-label(for='middle-name') По батькові
+              input.form-control#middle-name(name='middleName', maxlength='80', required, autocomplete='additional-name')
+              .invalid-feedback(data-error-for='middleName')
+          label.form-label(for='contact-email') Електронна адреса
+          input.form-control#contact-email(name='email', type='email', maxlength='254', required, autocomplete='email', placeholder='name@example.com')
+          .invalid-feedback(data-error-for='email')
+        .modal-footer
+          button.btn.btn-light(type='button', data-bs-dismiss='modal') Скасувати
+          button.btn.btn-primary#save-contact(type='submit') Зберегти контакт

@@ -1,0 +1,20 @@
+{
+  "name": "restful-library-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Навчальний RESTful-сервіс бібліотеки на Node.js, Express і MongoDB з DAO",
+  "engines": { "node": ">=22.12" },
+  "config": { "mongodbMemoryServer": { "version": "7.0.24", "disablePostinstall": true } },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "demo": "node src/server.js --demo",
+    "seed": "node scripts/seed.js",
+    "check": "node scripts/check.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "pack:submission": "node scripts/package.js"
+  },
+  "dependencies": { "dotenv": "18.0.10", "express": "5.3.0", "mongodb": "7.8.0" },
+  "devDependencies": { "mongodb-memory-server": "11.3.0", "yazl": "3.3.1" }
+}

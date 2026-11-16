@@ -1,0 +1,26 @@
+//- Початкову таблицю формує сервер із даних MongoDB. Pug екранує значення.
+each contact, index in contacts.slice(0, 8)
+  - const name = contact.lastName + ' ' + contact.firstName + ' ' + contact.middleName
+  tr
+    td.check-cell
+      input.form-check-input.contact-check(type='checkbox', value=String(contact._id), aria-label='Вибрати ' + name)
+    td
+      .contact-person
+        span.avatar(class='tone-' + index % 4, aria-hidden='true')= contact.firstName[0] + contact.lastName[0]
+        div
+          strong= contact.lastName + ' ' + contact.firstName
+          small= contact.middleName
+    td
+      a.contact-email(href='mailto:' + contact.email)= contact.email
+    td
+      .row-actions
+        button.icon-button(type='button', data-edit=String(contact._id), aria-label='Редагувати ' + name, title='Редагувати')
+          i.bi.bi-pencil(aria-hidden='true')
+        button.icon-button.delete(type='button', data-delete=String(contact._id), aria-label='Вилучити ' + name, title='Вилучити')
+          i.bi.bi-trash3(aria-hidden='true')
+else
+  tr
+    td.empty-state(colspan='4')
+      i.bi.bi-people(aria-hidden='true')
+      strong Почніть із першого контакту
+      | Натисніть «Додати контакт», щоб наповнити список.

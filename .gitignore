@@ -1,0 +1,30 @@
+# Залежності та результати збірки
+node_modules/
+dist/
+build/
+coverage/
+
+# Особисті налаштування та локальні дані
+.env
+.env.*
+!.env.example
+!.env.*.example
+.data/
+outbox/
+
+# Кеші, журнали та тимчасові файли
+.cache/
+.npm-cache/
+.test-temp/
+*.log
+*.tmp
+*.zip
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Допоміжні файли локального робочого середовища
+/.presentation-build/
+/.task-materials/
+/NVIDIA Corporation/

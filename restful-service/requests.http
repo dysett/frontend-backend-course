@@ -1,0 +1,72 @@
+@baseUrl = http://127.0.0.1:3002
+@bookId = вставте_ID_книжки
+@loanId = вставте_ID_видачі
+
+### Стан сервісу і MongoDB
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+### Усі книжки
+GET {{baseUrl}}/api/books
+
+### Створити книжку (ISBN може вже існувати в demo)
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Clean Architecture",
+  "author": "Robert C. Martin",
+  "isbn": "9780134494166",
+  "publicationYear": 2017,
+  "genre": "Архітектура ПЗ",
+  "totalCopies": 2
+}
+
+### Отримати за ID
+GET {{baseUrl}}/api/books/{{bookId}}
+
+### Повне оновлення редагованих полів
+PUT {{baseUrl}}/api/books/{{bookId}}
+Content-Type: application/json
+
+{
+  "title": "Clean Architecture",
+  "author": "Robert C. Martin",
+  "isbn": "9780134494166",
+  "publicationYear": 2017,
+  "genre": "Архітектура ПЗ",
+  "totalCopies": 3
+}
+
+### Часткове оновлення
+PATCH {{baseUrl}}/api/books/{{bookId}}
+Content-Type: application/json
+
+{ "totalCopies": 2 }
+
+### Видача примірника на 7 діб
+POST {{baseUrl}}/api/books/{{bookId}}/loans
+Content-Type: application/json
+
+{ "readerId": "reader-001", "days": 7 }
+
+### Активні видачі книжки
+GET {{baseUrl}}/api/books/{{bookId}}/loans
+
+### Видача за ID
+GET {{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}
+
+### Повернення примірника
+DELETE {{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}
+
+### Буквальний пошук за назвою, автором або ISBN
+GET {{baseUrl}}/api/books?q=Martin&available=true
+
+### Прострочені видачі
+GET {{baseUrl}}/api/loans?overdue=true
+
+### Статистика фонду
+GET {{baseUrl}}/api/statistics
+
+### Видалити книжку після повернення всіх примірників
+DELETE {{baseUrl}}/api/books/{{bookId}}

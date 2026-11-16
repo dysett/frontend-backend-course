@@ -1,0 +1,21 @@
+section#history-view(data-view='history', hidden)
+  .page-heading
+    div
+      .eyebrow ЖУРНАЛ ПОВІДОМЛЕНЬ
+      h1
+        | Історія розсилок
+        span.title-dot .
+      p Останні 30 розсилок та результат для кожного одержувача.
+    button#refresh-history.btn.btn-outline-secondary(type='button')
+      i.bi.bi-arrow-clockwise.me-2(aria-hidden='true')
+      | Оновити
+  .content-panel
+    .table-responsive
+      table.table.align-middle.history-table.mb-0
+        thead
+          tr
+            th ПОВІДОМЛЕННЯ
+            th РЕЖИМ
+            th РЕЗУЛЬТАТ
+            th
+        tbody#history-rows

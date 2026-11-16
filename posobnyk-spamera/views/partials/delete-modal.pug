@@ -1,0 +1,12 @@
+.modal.fade#delete-modal(tabindex='-1', aria-labelledby='delete-title', aria-hidden='true')
+  .modal-dialog.modal-dialog-centered
+    .modal-content
+      .modal-header
+        h2#delete-title.modal-title.fs-4 Вилучити контакт?
+        button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Закрити')
+      .modal-body
+        p#delete-description
+        p.small.text-secondary.mb-0 Контакт буде вилучено зі списку. Попередні розсилки залишаться в історії.
+      .modal-footer
+        button.btn.btn-light(type='button', data-bs-dismiss='modal') Скасувати
+        button#confirm-delete.btn.btn-danger(type='button') Вилучити

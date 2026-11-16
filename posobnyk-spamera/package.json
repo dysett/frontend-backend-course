@@ -1,0 +1,33 @@
+{
+  "name": "posobnyk-spamera",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Навчальний клієнт-серверний застосунок для поштових розсилок",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "demo": "node src/server.js --demo",
+    "seed": "node scripts/seed.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "check": "node scripts/check.js"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mongodb": "^6.20.0",
+    "nodemailer": "^10.1.1",
+    "pug": "^3.0.4",
+    "validator": "^13.15.20"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.2.1",
+    "smtp-server": "^3.16.1"
+  }
+}

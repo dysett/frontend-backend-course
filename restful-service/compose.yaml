@@ -1,0 +1,11 @@
+services:
+  mongodb:
+    image: mongo:7.0.24
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - library_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  library_data:

@@ -1,0 +1,1229 @@
+{
+  "info": {
+    "_postman_id": "3fa2eac9-b201-4e0e-8d45-812302189191",
+    "name": "Товстий клієнт — Бібліотека",
+    "description": "React + Express. Запустіть demo та всі запити за порядком. Вхід використовує cookie jar і CSRF-токен. Тестові дані видаляються; останній запит перевіряє заборону доступу після виходу.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "testIsbn",
+      "value": ""
+    },
+    {
+      "key": "bookId",
+      "value": ""
+    },
+    {
+      "key": "loanId",
+      "value": ""
+    },
+    {
+      "key": "secondLoanId",
+      "value": ""
+    },
+    {
+      "key": "csrfToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00.1 Отримати сеанс і CSRF",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/session"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('csrfToken', pm.response.json().data.csrfToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "00.2 Увійти адміністратором",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\":\"{{adminUsername}}\",\"password\":\"{{adminPassword}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('csrfToken', pm.response.json().data.csrfToken);",
+              "pm.test('Роль адміністратора', () => pm.expect(pm.response.json().data.user.role).to.eql('admin'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 Перевірка MongoDB",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const base = '978' + String(Date.now()).slice(-6) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');",
+              "const sum = [...base].reduce((n, d, i) => n + Number(d) * (i % 2 ? 3 : 1), 0);",
+              "pm.collectionVariables.set('testIsbn', base + ((10 - sum % 10) % 10));",
+              "['bookId', 'loanId', 'secondLoanId'].forEach(k => pm.collectionVariables.unset(k));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('MongoDB працює', () => pm.expect(json.data.status).to.eql('ok'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Створення книжки",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman Book\",\n  \"author\": \"Test Author\",\n  \"isbn\": \"{{testIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Навчальна\",\n  \"totalCopies\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('bookId', json.data.id);",
+              "pm.test('Два вільні примірники', () => pm.expect(json.data.availableCopies).to.eql(2));",
+              "pm.test('Location', () => pm.expect(pm.response.headers.get('Location')).to.eql('/api/books/' + json.data.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Отримання всіх книжок",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Книжка присутня у списку', () => pm.expect(json.data.some(b => b.id === pm.collectionVariables.get('bookId'))).to.eql(true));",
+              "pm.test('Кількість', () => pm.expect(json.meta.count).to.eql(json.data.length));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Отримання за ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Назва книжки', () => pm.expect(json.data.title).to.eql('Postman Book'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Дублікат ISBN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman Book\",\n  \"author\": \"Test Author\",\n  \"isbn\": \"{{testIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Навчальна\",\n  \"totalCopies\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('DUPLICATE_ISBN', () => pm.expect(json.error.code).to.eql('DUPLICATE_ISBN'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Повне оновлення PUT",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman Replaced\",\n  \"author\": \"Test Author\",\n  \"isbn\": \"{{testIsbn}}\",\n  \"publicationYear\": 2024,\n  \"genre\": \"Навчальна\",\n  \"totalCopies\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Фонд оновлено', () => pm.expect(json.data.totalCopies).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Часткове оновлення PATCH",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman Updated\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Назву оновлено', () => pm.expect(json.data.title).to.eql('Postman Updated'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Відхилення некоректних даних",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"totalCopies\": 0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('VALIDATION_ERROR', () => pm.expect(json.error.code).to.eql('VALIDATION_ERROR'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Видача примірника",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readerId\": \"postman-reader-1\",\n  \"days\": 7\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('loanId', json.data.id);",
+              "pm.test('Строк 7 діб', () => pm.expect(Date.parse(json.data.dueAt) - Date.parse(json.data.borrowedAt)).to.eql(7 * 86400000));",
+              "pm.test('Видача не прострочена', () => pm.expect(json.data.overdue).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Активні видачі книжки",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Одна видача', () => pm.expect(json.data.length).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Видача за ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Заборона повторної видачі читачу",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readerId\": \"postman-reader-1\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('ALREADY_BORROWED', () => pm.expect(json.error.code).to.eql('ALREADY_BORROWED'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Немає вільних примірників",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readerId\": \"postman-reader-2\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('NO_COPIES_AVAILABLE', () => pm.expect(json.error.code).to.eql('NO_COPIES_AVAILABLE'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Додати примірник у фонд",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"totalCopies\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Видача другого примірника",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readerId\": \"postman-reader-2\",\n  \"days\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('secondLoanId', json.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Заборона зменшення виданого фонду",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"totalCopies\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('COPIES_IN_USE', () => pm.expect(json.error.code).to.eql('COPIES_IN_USE'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 Заборона видалення з активними видачами",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('ACTIVE_LOANS', () => pm.expect(json.error.code).to.eql('ACTIVE_LOANS'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Пошук книжки",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books?q={{testIsbn}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Знайдено одну книжку', () => pm.expect(json.data.length).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 Книжки без вільних примірників",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books?available=false"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Книжка недоступна', () => pm.expect(json.data.some(b => b.id === pm.collectionVariables.get('bookId'))).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 Усі активні видачі",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/loans"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Дві тестові видачі', () => pm.expect(json.data.filter(l => l.bookId === pm.collectionVariables.get('bookId')).length).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 Прострочені видачі",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/loans?overdue=true"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Усі записи прострочені', () => pm.expect(json.data.every(l => l.overdue)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22 Статистика бібліотеки",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/statistics"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Баланс примірників', () => pm.expect(json.data.totalCopies).to.eql(json.data.availableCopies + json.data.borrowedCopies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "23 Повернення другого примірника",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans/{{secondLoanId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Є час повернення', () => pm.expect(json.data.returnedAt).to.be.a('string'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "24 Повернення першого примірника",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25 Повторне повернення",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('LOAN_NOT_FOUND', () => pm.expect(json.error.code).to.eql('LOAN_NOT_FOUND'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26 Фонд відновлено",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Усі примірники доступні', () => pm.expect(json.data.availableCopies).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27 Видалення книжки",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('Книжку видалено', () => pm.expect(json.data.deleted).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "28 Відсутня книжка",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/{{bookId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('BOOK_NOT_FOUND', () => pm.expect(json.error.code).to.eql('BOOK_NOT_FOUND'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29 Некоректний ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/not-an-id"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('JSON response', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "const json = pm.response.json();",
+              "pm.test('VALIDATION_ERROR', () => pm.expect(json.error.code).to.eql('VALIDATION_ERROR'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "30 Неправильний CSRF відхиляється",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "invalid"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('CSRF захист', () => pm.expect(pm.response.json().error.code).to.eql('CSRF_INVALID'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "31 Вийти з облікового запису",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/logout",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "32 Без сеансу зміни заборонені",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-Token",
+            "value": "{{csrfToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('Потрібна авторизація', () => pm.expect(pm.response.json().error.code).to.eql('AUTH_REQUIRED'));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

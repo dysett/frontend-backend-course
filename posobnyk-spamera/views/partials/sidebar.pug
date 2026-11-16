@@ -1,0 +1,23 @@
+aside.sidebar
+  a.brand(href='#contacts')
+    span.brand-mark
+      i.bi.bi-send(aria-hidden='true')
+    span
+      | Листоноша
+      small ПОСОБНИК СПАМЕРА
+  .workspace-label РОБОЧИЙ ПРОСТІР
+  nav.main-nav(aria-label='Основна навігація')
+    each item in menu
+      a(href='#' + item.id, data-nav=item.id, class=item.id === 'contacts' ? 'active' : undefined, aria-current=item.id === 'contacts' ? 'page' : undefined)
+        i(class='bi bi-' + item.icon, aria-hidden='true')
+        = item.label
+        if item.id === 'contacts'
+          span#nav-count= contacts.length
+  .sidebar-note
+    i.bi.bi-envelope-paper(aria-hidden='true')
+    strong Слова, які доходять
+    p Зберіть адресатів, підготуйте лист і залишайтеся на зв’язку.
+  .sidebar-footer
+    span.connection-dot
+    span#connection-label Підключення…
+    small Навчальний проєкт · 2026

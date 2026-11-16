@@ -1,0 +1,63 @@
+@baseUrl = http://127.0.0.1:3003
+@bookId = вставте_ID_книжки
+@loanId = вставте_ID_видачі
+
+### 1. Початковий сеанс. Cookie jar HTTP Client має бути увімкнений.
+GET {{baseUrl}}/api/auth/session
+Accept: application/json
+
+> {% client.global.set("csrfToken", response.body.data.csrfToken); %}
+
+### 2. Вхід. Пароль лише для локального demo.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{ "username": "admin", "password": "DemoLibrary!2026" }
+
+> {% client.global.set("csrfToken", response.body.data.csrfToken); %}
+
+### Відкритий каталог
+GET {{baseUrl}}/api/books
+
+### Створити книжку. Повторення ISBN дає 409.
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{ "title": "Clean Architecture", "author": "Robert C. Martin", "isbn": "9780134494166", "publicationYear": 2017, "genre": "Архітектура ПЗ", "totalCopies": 2 }
+
+### Отримати за ID
+GET {{baseUrl}}/api/books/{{bookId}}
+
+### Часткове оновлення
+PATCH {{baseUrl}}/api/books/{{bookId}}
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{ "totalCopies": 3 }
+
+### Видати примірник
+POST {{baseUrl}}/api/books/{{bookId}}/loans
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{ "readerId": "reader-001", "days": 7 }
+
+### Активні видачі. Потрібна cookie адміністратора.
+GET {{baseUrl}}/api/loans
+
+### Повернути примірник
+DELETE {{baseUrl}}/api/books/{{bookId}}/loans/{{loanId}}
+X-CSRF-Token: {{csrfToken}}
+
+### Видалити книжку після повернення всіх примірників
+DELETE {{baseUrl}}/api/books/{{bookId}}
+X-CSRF-Token: {{csrfToken}}
+
+### Вихід
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{}

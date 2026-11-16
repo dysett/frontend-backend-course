@@ -1,0 +1,21 @@
+section#templates-view(data-view='templates', hidden)
+  .page-heading
+    div
+      .eyebrow ТРОХИ НАТХНЕННЯ
+      h1
+        | Потрібні слова
+        span.title-dot .
+      p Готові повідомлення для ваших наступних розсилок.
+  .row.g-4#template-cards
+    each template in templates
+      .col-lg-4.col-md-6
+        article.content-panel.template-card
+          span.template-icon
+            i(class='bi bi-' + template.icon, aria-hidden='true')
+          .template-category= template.category
+          h2= template.title
+          p= template.description
+          .template-excerpt= template.text
+          button.btn.btn-outline-secondary(type='button', data-template=template.id)
+            | Використати шаблон
+            i.bi.bi-arrow-right.ms-2(aria-hidden='true')

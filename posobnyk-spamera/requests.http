@@ -1,0 +1,69 @@
+@base = http://127.0.0.1:3000
+
+### Перевірка бази даних
+GET {{base}}/api/health
+
+### Список контактів
+GET {{base}}/api/contacts
+
+### Створити вигаданий контакт. Повторний запуск поверне 409.
+POST {{base}}/api/contacts
+Content-Type: application/json
+
+{
+  "lastName": "Дорошенко",
+  "firstName": "Ірина",
+  "middleName": "Олегівна",
+  "email": "iryna.doroshenko@example.com"
+}
+
+> {% client.global.set("contactId", response.body._id); %}
+
+### Оновити створений контакт
+PUT {{base}}/api/contacts/{{contactId}}
+Content-Type: application/json
+
+{
+  "lastName": "Дорошенко",
+  "firstName": "Ірина",
+  "middleName": "Сергіївна",
+  "email": "iryna.doroshenko@example.com"
+}
+
+### Готові повідомлення
+GET {{base}}/api/templates
+
+### Підготувати шаблон для одного контакту. У режимі SMTP цей запит надсилає лист.
+POST {{base}}/api/campaigns
+Content-Type: application/json
+
+{
+  "audience": "selected",
+  "recipientIds": ["{{contactId}}"],
+  "templateId": "welcome"
+}
+
+> {% client.global.set("campaignId", response.body._id); %}
+
+### Власне повідомлення для одного контакту
+POST {{base}}/api/campaigns
+Content-Type: application/json
+
+{
+  "audience": "selected",
+  "recipientIds": ["{{contactId}}"],
+  "subject": "Перевірка власного повідомлення",
+  "text": "Добрий день!\n\nЦе тестове повідомлення навчального застосунку."
+}
+
+### Історія
+GET {{base}}/api/campaigns
+
+### Деталі шаблонної розсилки
+GET {{base}}/api/campaigns/{{campaignId}}
+
+### Завантажити eml у режимі preview
+GET {{base}}/api/campaigns/{{campaignId}}/messages/{{contactId}}
+
+### Вилучити створений вигаданий контакт
+DELETE {{base}}/api/contacts/{{contactId}}
